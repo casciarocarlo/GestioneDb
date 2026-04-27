@@ -221,13 +221,13 @@ initAuthDatabase();
                     onclick="switchTab('login')" role="tab"
                     aria-selected="<?= $active_tab === 'login' ? 'true' : 'false' ?>"
                     id="tab-login-btn">
-                🔑 Sign In
+                🔑 <?= __('login') ?>
             </button>
             <button class="tab-btn <?= $active_tab === 'register' ? 'active' : '' ?>"
                     onclick="switchTab('register')" role="tab"
                     aria-selected="<?= $active_tab === 'register' ? 'true' : 'false' ?>"
                     id="tab-register-btn">
-                👤 Register
+                👤 <?= __('register') ?>
             </button>
         </div>
 
@@ -235,6 +235,7 @@ initAuthDatabase();
         <div class="tab-panel <?= $active_tab === 'login' ? 'active' : '' ?>" id="panel-login" role="tabpanel">
             <form method="POST" action="login.php" novalidate>
                 <input type="hidden" name="action" value="login">
+                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
 
                 <div class="form-group">
                     <label class="form-label" for="username">Username or Email</label>
@@ -243,13 +244,13 @@ initAuthDatabase();
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
+                    <label class="form-label" for="password"><?= __('password') ?></label>
                     <input type="password" name="password" id="password" class="form-input"
                            placeholder="••••••••" required autocomplete="current-password">
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block" id="btn-login">
-                    🔑 Sign In
+                    🔑 <?= __('login') ?>
                 </button>
             </form>
 
@@ -266,34 +267,35 @@ initAuthDatabase();
         <div class="tab-panel <?= $active_tab === 'register' ? 'active' : '' ?>" id="panel-register" role="tabpanel">
             <form method="POST" action="login.php" novalidate>
                 <input type="hidden" name="action" value="register">
+                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
 
                 <div class="form-group">
-                    <label class="form-label" for="reg_username">Username</label>
+                    <label class="form-label" for="reg_username"><?= __('username') ?></label>
                     <input type="text" name="reg_username" id="reg_username" class="form-input"
                            placeholder="johndoe" required autocomplete="username">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="reg_email">Email Address</label>
+                    <label class="form-label" for="reg_email"><?= __('email') ?></label>
                     <input type="email" name="reg_email" id="reg_email" class="form-input"
                            placeholder="john@example.com" required autocomplete="email">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group" style="flex:1">
-                        <label class="form-label" for="reg_password">Password</label>
+                        <label class="form-label" for="reg_password"><?= __('password') ?></label>
                         <input type="password" name="reg_password" id="reg_password" class="form-input"
                                placeholder="••••••••" required minlength="6" autocomplete="new-password">
                     </div>
                     <div class="form-group" style="flex:1">
-                        <label class="form-label" for="reg_confirm_password">Confirm</label>
+                        <label class="form-label" for="reg_confirm_password"><?= __('confirm_password') ?></label>
                         <input type="password" name="reg_confirm_password" id="reg_confirm_password" class="form-input"
                                placeholder="••••••••" required autocomplete="new-password">
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-success btn-block" id="btn-register">
-                    👤 Create Account
+                    👤 <?= __('register') ?>
                 </button>
             </form>
         </div>

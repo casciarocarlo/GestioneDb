@@ -265,6 +265,7 @@ include 'includes/header.php';
 
         <form method="POST" class="space-y-4">
             <input type="hidden" name="action" value="create_backup">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
 
             <div class="form-group">
                 <label class="form-label">Select Database</label>
@@ -312,6 +313,7 @@ include 'includes/header.php';
 
         <form method="POST" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="action" value="restore_backup">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
 
             <div class="form-group">
                 <label class="form-label">Target Database Name</label>
@@ -366,6 +368,7 @@ include 'includes/header.php';
                                 <form method="POST" style="display: inline;"
                                     onsubmit="return confirm('Delete backup file <?= sanitize($backup['name']) ?>?')">
                                     <input type="hidden" name="action" value="delete_backup">
+                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                     <input type="hidden" name="backup_file" value="<?= sanitize($backup['name']) ?>">
                                     <button type="submit" class="btn btn-danger btn-sm">
                                         🗑️ Delete

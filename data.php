@@ -195,6 +195,7 @@ include 'includes/header.php';
 
                 <form method="POST">
                     <input type="hidden" name="action" value="insert">
+                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                     <input type="hidden" name="table" value="<?= sanitize($current_table) ?>">
                     
                     <div class="grid grid-2">
@@ -250,6 +251,7 @@ include 'includes/header.php';
 
                 <form method="POST">
                     <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                     <input type="hidden" name="table" value="<?= sanitize($current_table) ?>">
                     <input type="hidden" name="primary_key" value="<?= sanitize($primary_key) ?>">
                     <input type="hidden" name="primary_value" value="<?= sanitize($edit_record[$primary_key]) ?>">
@@ -372,6 +374,7 @@ include 'includes/header.php';
                                                 <form method="POST" style="display: inline;" 
                                                       onsubmit="return confirm('Are you sure you want to delete this record?')">
                                                     <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                                     <input type="hidden" name="table" value="<?= sanitize($current_table) ?>">
                                                     <input type="hidden" name="primary_key" value="<?= sanitize($primary_key) ?>">
                                                     <input type="hidden" name="primary_value" value="<?= sanitize($row[$primary_key]) ?>">

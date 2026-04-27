@@ -129,8 +129,8 @@ if ($action === 'structure' && $table_name) {
     }
 }
 
-$page_title = 'Tables';
-$page_heading = 'Tables Management';
+$page_title = __('tables');
+$page_heading = __('tables');
 $page_description = 'Manage tables in the selected database';
 include 'includes/header.php';
 ?>
@@ -140,7 +140,7 @@ include 'includes/header.php';
     <!-- Create Table Form / Modulo Creazione Tabella -->
     <div class="page-header">
         <div class="page-header-info">
-            <h1 class="page-title">⚙️ Create New Table</h1>
+            <h1 class="page-title">⚙️ <?= __('create_table') ?></h1>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="tables.php" class="btn btn-sm btn-ghost">← Back to Tables</a>
@@ -149,10 +149,11 @@ include 'includes/header.php';
 
     <form method="POST" id="createTableForm">
         <input type="hidden" name="action" value="create">
+        <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
         
         <div class="card mb-4">
             <div class="form-group mb-0">
-                <label class="form-label">Table Name</label>
+                <label class="form-label"><?= __('table_name') ?></label>
                 <input type="text" name="table_name" class="form-input" placeholder="e.g. users, products..." required>
             </div>
         </div>
@@ -213,7 +214,7 @@ include 'includes/header.php';
 
         <div class="d-flex justify-between align-center mt-3">
             <button type="button" class="btn btn-outline" onclick="addField()">+ Add Another Field</button>
-            <button type="submit" class="btn btn-success">✅ Create Table</button>
+            <button type="submit" class="btn btn-success">✅ <?= __('create_table') ?></button>
         </div>
     </form>
 
@@ -221,11 +222,11 @@ include 'includes/header.php';
     <!-- Table Structure View / Vista Struttura Tabella -->
     <div class="page-header">
         <div class="page-header-info">
-            <h1 class="page-title">🔍 Table Structure: <?= sanitize($table_name) ?></h1>
+            <h1 class="page-title">🔍 <?= __('structure') ?>: <?= sanitize($table_name) ?></h1>
             <p class="page-description">View schema details and column definitions</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="data.php?table=<?= urlencode($table_name) ?>" class="btn btn-sm btn-primary">📋 Browse Data</a>
+            <a href="data.php?table=<?= urlencode($table_name) ?>" class="btn btn-sm btn-primary">📋 <?= __('browse') ?></a>
             <a href="tables.php" class="btn btn-sm btn-ghost">← Back to Tables</a>
         </div>
     </div>
@@ -284,11 +285,11 @@ include 'includes/header.php';
     <!-- Table List View / Vista Elenco Tabelle -->
     <div class="page-header">
         <div class="page-header-info">
-            <h1 class="page-title">📊 Database Tables</h1>
+            <h1 class="page-title">📊 <?= __('tables') ?></h1>
             <p class="page-description">Overview of all tables inside <strong class="text-primary"><?= sanitize($selected_db) ?></strong></p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="tables.php?action=create" class="btn btn-sm btn-success">➕ Create Table</a>
+            <a href="tables.php?action=create" class="btn btn-sm btn-success">➕ <?= __('create_table') ?></a>
         </div>
     </div>
 
@@ -298,8 +299,8 @@ include 'includes/header.php';
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Table Name</th>
-                            <th class="text-right">Quick Actions</th>
+                            <th><?= __('table_name') ?></th>
+                            <th class="text-right"><?= __('quick_actions') ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -310,19 +311,21 @@ include 'includes/header.php';
                                 </td>
                                 <td class="text-right">
                                     <div class="d-flex gap-2 justify-end">
-                                        <a href="data.php?table=<?= urlencode($table) ?>" class="btn btn-xs btn-primary">📋 Browse</a>
-                                        <a href="tables.php?action=structure&table=<?= urlencode($table) ?>" class="btn btn-xs btn-outline">🔍 Structure</a>
+                                        <a href="data.php?table=<?= urlencode($table) ?>" class="btn btn-xs btn-primary">📋 <?= __('browse') ?></a>
+                                        <a href="tables.php?action=structure&table=<?= urlencode($table) ?>" class="btn btn-xs btn-outline">🔍 <?= __('structure') ?></a>
                                         
                                         <form method="POST" style="display: inline;" data-confirm="Are you sure you want to empty table '<?= sanitize($table) ?>'? All data will be lost!">
                                             <input type="hidden" name="action" value="truncate">
+                                            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                             <input type="hidden" name="table_name" value="<?= sanitize($table) ?>">
-                                            <button type="submit" class="btn btn-warning btn-xs">🗑 Empty</button>
+                                            <button type="submit" class="btn btn-warning btn-xs">🗑 <?= __('empty') ?></button>
                                         </form>
                                         
                                         <form method="POST" style="display: inline;" data-confirm="Are you sure you want to DROP table '<?= sanitize($table) ?>'? This CANNOT be undone!">
                                             <input type="hidden" name="action" value="drop">
+                                            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                             <input type="hidden" name="table_name" value="<?= sanitize($table) ?>">
-                                            <button type="submit" class="btn btn-danger btn-xs">❌ Drop</button>
+                                            <button type="submit" class="btn btn-danger btn-xs">❌ <?= __('drop') ?></button>
                                         </form>
                                     </div>
                                 </td>

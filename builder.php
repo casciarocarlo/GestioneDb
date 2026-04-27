@@ -416,6 +416,7 @@ include 'includes/header.php';
 
 <!-- Hidden Execution Form / Modulo Esecuzione Nascosto -->
 <form method="POST" id="queryExecutionForm" style="display: none;">
+    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
     <input type="hidden" name="built_query" id="builtQueryInput">
 </form>
 

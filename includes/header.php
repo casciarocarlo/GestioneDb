@@ -33,20 +33,20 @@ try {
 }
 
 $nav_items = [
-    ['key'=>'home',       'href'=>'index.php',      'icon'=>'🏠', 'label'=>'Dashboard'],
-    ['key'=>'tables',     'href'=>'tables.php',     'icon'=>'📊', 'label'=>'Tables'],
-    ['key'=>'data',       'href'=>'data.php',       'icon'=>'📋', 'label'=>'Data Browser'],
-    ['key'=>'query',      'href'=>'query.php',      'icon'=>'💻', 'label'=>'SQL Query'],
-    ['key'=>'builder',    'href'=>'builder.php',    'icon'=>'🏗️', 'label'=>'Query Builder'],
-    ['key'=>'schema',     'href'=>'schema.php',     'icon'=>'🔗', 'label'=>'Schema Viewer'],
-    ['key'=>'procedures', 'href'=>'procedures.php', 'icon'=>'⚙️', 'label'=>'Stored Procedures'],
-    ['key'=>'backup',     'href'=>'backup.php',     'icon'=>'💾', 'label'=>'Backup & Restore'],
-    ['key'=>'export',     'href'=>'export.php',     'icon'=>'📤', 'label'=>'Export / Import'],
-    ['key'=>'logs',       'href'=>'logs.php',       'icon'=>'📝', 'label'=>'Activity Logs'],
+    ['key'=>'home',       'href'=>'index.php',      'icon'=>'🏠', 'label'=>__('dashboard')],
+    ['key'=>'tables',     'href'=>'tables.php',     'icon'=>'📊', 'label'=>__('tables')],
+    ['key'=>'data',       'href'=>'data.php',       'icon'=>'📋', 'label'=>__('data')],
+    ['key'=>'query',      'href'=>'query.php',      'icon'=>'💻', 'label'=>__('query')],
+    ['key'=>'builder',    'href'=>'builder.php',    'icon'=>'🏗️', 'label'=>__('query_builder', 'Query Builder')],
+    ['key'=>'schema',     'href'=>'schema.php',     'icon'=>'🔗', 'label'=>__('schema_viewer', 'Schema Viewer')],
+    ['key'=>'procedures', 'href'=>'procedures.php', 'icon'=>'⚙️', 'label'=>__('stored_procedures', 'Stored Procedures')],
+    ['key'=>'backup',     'href'=>'backup.php',     'icon'=>'💾', 'label'=>__('backup')],
+    ['key'=>'export',     'href'=>'export.php',     'icon'=>'📤', 'label'=>__('export_import', 'Export / Import')],
+    ['key'=>'logs',       'href'=>'logs.php',       'icon'=>'📝', 'label'=>__('logs')],
 ];
 
 if (hasRole('admin')) {
-    $nav_items[] = ['key'=>'users', 'href'=>'users.php', 'icon'=>'👥', 'label'=>'User Management'];
+    $nav_items[] = ['key'=>'users', 'href'=>'users.php', 'icon'=>'👥', 'label'=>__('user_management', 'User Management')];
 }
 ?>
 <!DOCTYPE html>
@@ -83,13 +83,14 @@ if (hasRole('admin')) {
 
         <!-- Database Selector -->
         <div class="sidebar-db-selector">
-            <label for="sidebar-db-select">Active Database</label>
+            <label for="sidebar-db-select"><?= __('select_database') ?></label>
             <div class="sidebar-search" style="margin: 0.5rem 0; padding: 0;">
                 <input type="text" id="db-search" placeholder="Filter databases..." 
                        style="padding: 6px 10px 6px 30px; font-size: 0.7rem;" onkeyup="filterDbs()">
             </div>
             <form method="POST" action="index.php" id="sidebar-db-form">
                 <input type="hidden" name="action" value="select_database">
+                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                 <select name="database" id="sidebar-db-select" size="1" onchange="document.getElementById('sidebar-db-form').submit()">
                     <option value="">— Select Database —</option>
                     <?php foreach ($sidebar_databases as $sidebar_db): ?>
@@ -185,6 +186,12 @@ if (hasRole('admin')) {
                     <svg class="icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                     <svg class="icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                 </button>
+
+                <!-- Language Switcher -->
+                <div class="lang-switcher" style="display: flex; gap: 0.25rem;">
+                    <a href="?lang=en" class="btn btn-xs <?= $_SESSION['lang'] === 'en' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">EN</a>
+                    <a href="?lang=it" class="btn btn-xs <?= $_SESSION['lang'] === 'it' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">IT</a>
+                </div>
                 <?php if ($selected_db): ?>
                     <span class="badge badge-primary" id="topbar-active-db">
                         🗃️ <?= htmlspecialchars($selected_db) ?>

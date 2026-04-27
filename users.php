@@ -233,6 +233,7 @@ include 'includes/header.php';
                                 <!-- Toggle Status -->
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="toggle_status">
+                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                     <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                     <input type="hidden" name="is_active" value="<?= $user['is_active'] ?>">
                                     <button type="submit"
@@ -244,6 +245,7 @@ include 'includes/header.php';
                                 <!-- Change Role -->
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="change_role">
+                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                     <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                     <select name="role" class="form-select"
                                         style="width: auto; display: inline-block; font-size: 0.8rem;"
@@ -257,6 +259,7 @@ include 'includes/header.php';
                                 <form method="POST" style="display: inline;"
                                     onsubmit="return confirm('Delete user <?= sanitize($user['username']) ?>? This cannot be undone!')">
                                     <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                     <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                     <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
                                 </form>

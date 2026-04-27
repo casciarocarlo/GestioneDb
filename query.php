@@ -164,6 +164,7 @@ include 'includes/header.php';
         <h2>SQL Query Editor</h2>
 
         <form method="POST" id="queryForm">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
             <div class="form-group">
                 <label class="form-label">SQL Query</label>
                 <textarea id="sql-editor" name="query" class="form-textarea" rows="12"

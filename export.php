@@ -280,6 +280,7 @@ include 'includes/header.php';
         </div>
         <form method="POST" class="space-y-4">
             <input type="hidden" name="action" value="export_csv">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
             <div class="form-group">
                 <label class="form-label">Select Table</label>
                 <select name="table" class="form-select" required>
@@ -305,6 +306,7 @@ include 'includes/header.php';
         </div>
         <form method="POST" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="action" value="import_csv">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
             <div class="form-group">
                 <label class="form-label">Target Table</label>
                 <select name="table" class="form-select" required>
@@ -364,6 +366,7 @@ include 'includes/header.php';
                                 <form method="POST" style="display:inline"
                                     onsubmit="return confirm('Delete exported file <?= sanitize($file['name']) ?>?')">
                                     <input type="hidden" name="action" value="delete_export">
+                                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                     <input type="hidden" name="export_file" value="<?= sanitize($file['name']) ?>">
                                     <button class="btn btn-danger btn-sm">🗑️ Delete</button>
                                 </form>

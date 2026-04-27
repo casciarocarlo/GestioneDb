@@ -56,7 +56,7 @@ header("X-XSS-Protection: 1; mode=block");
 header("X-Frame-Options: SAMEORIGIN");
 header("X-Content-Type-Options: nosniff");
 header("Referrer-Policy: strict-origin-when-cross-origin");
-header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;");
+header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;");
 
 /**
  * Database connection class / Classe per la connessione al Database
@@ -161,5 +161,79 @@ function showMessage($message, $type = 'info')
 {
     $_SESSION['message'] = $message;
     $_SESSION['message_type'] = $type;
+}
+
+/**
+ * Multi-language Support / Supporto Multi-lingua
+ */
+$available_langs = ['en', 'it'];
+$default_lang = 'en';
+
+// Handle language change / Gestione cambio lingua
+if (isset($_GET['lang']) && in_array($_GET['lang'], $available_langs)) {
+    $_SESSION['lang'] = $_GET['lang'];
+    // Redirect back to remove the lang param from URL
+    $url = strtok($_SERVER["REQUEST_URI"], '?');
+    if (!empty($_SERVER['QUERY_STRING'])) {
+        parse_str($_SERVER['QUERY_STRING'], $params);
+        unset($params['lang']);
+        if (!empty($params)) $url .= '?' . http_build_query($params);
+    }
+    header("Location: " . $url);
+    exit();
+}
+
+// Determine current language / Determina la lingua corrente
+$lang = $_SESSION['lang'] ?? $default_lang;
+$translations = [];
+
+$lang_file = __DIR__ . "/languages/{$lang}.php";
+if (file_exists($lang_file)) {
+    $translations = include $lang_file;
+}
+
+/**
+ * Translation helper / Funzione per la traduzione
+ */
+function __($key, $default = null)
+{
+    global $translations;
+    return $translations[$key] ?? ($default ?: $key);
+}
+
+/**
+ * Generate CSRF token / Genera token CSRF
+ */
+function generateCSRF()
+{
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Validate CSRF token / Valida token CSRF
+ */
+function validateCSRF($token)
+{
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Security middleware for POST requests / Middleware di sicurezza per richieste POST
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // List of pages to skip CSRF check if necessary (e.g., login or public webhooks)
+    $skip_csrf = []; // Handle all pages
+    
+    $current_file = basename($_SERVER['PHP_SELF']);
+    if (!in_array($current_file, $skip_csrf)) {
+        $token = $_POST['csrf_token'] ?? '';
+        if (!validateCSRF($token)) {
+            header('HTTP/1.1 403 Forbidden');
+            die("CSRF token validation failed. Request denied.");
+        }
+    }
 }
 ?>

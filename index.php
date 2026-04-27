@@ -6,9 +6,9 @@ if (!isAuthenticated() || !validateSessionToken()) {
 }
 
 $current_page     = 'home';
-$page_title       = 'Dashboard';
-$page_heading     = 'Dashboard';
-$page_description = 'Welcome back — manage your MySQL databases';
+$page_title       = __('dashboard');
+$page_heading     = __('dashboard');
+$page_description = __('welcome_back') . ' — manage your MySQL databases';
 
 $selected_db = $_SESSION['selected_db'] ?? '';
 $db = new Database($selected_db ?: null);
@@ -95,9 +95,9 @@ include 'includes/header.php';
     </div>
     <?php if ($selected_db): ?>
     <div class="d-flex gap-2 flex-wrap">
-        <a href="tables.php" class="btn btn-sm btn-ghost">📊 Tables</a>
-        <a href="data.php"   class="btn btn-sm btn-ghost">📋 Data</a>
-        <a href="query.php"  class="btn btn-sm btn-primary">💻 Run Query</a>
+        <a href="tables.php" class="btn btn-sm btn-ghost">📊 <?= __('tables') ?></a>
+        <a href="data.php"   class="btn btn-sm btn-ghost">📋 <?= __('data') ?></a>
+        <a href="query.php"  class="btn btn-sm btn-primary">💻 <?= __('query') ?></a>
     </div>
     <?php endif; ?>
 </div>
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">🗄️ Database Management</div>
+                <div class="card-title">🗄️ <?= __('create_new_db') ?></div>
                 <div class="card-subtitle">Create or remove databases</div>
             </div>
         </div>
@@ -228,14 +228,15 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Create Database / Crea Database -->
         <form method="POST" class="mb-3">
             <input type="hidden" name="action" value="create_database">
+            <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
             <div class="form-group">
-                <label class="form-label" for="db_name_input">Create New Database</label>
+                <label class="form-label" for="db_name_input"><?= __('create_new_db') ?></label>
                 <div class="d-flex gap-2">
                     <input type="text" name="db_name" id="db_name_input" class="form-input"
                            placeholder="my_new_database" required
                            pattern="[a-zA-Z0-9_]+" title="Letters, numbers and underscores only">
                     <button type="submit" class="btn btn-success btn-sm" style="white-space:nowrap">
-                        ＋ Create
+                        ＋ <?= __('save') ?>
                     </button>
                 </div>
             </div>
@@ -245,15 +246,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Database list / Elenco Database -->
         <h4 class="fw-600 mb-2" style="font-size:.85rem;color:var(--text-secondary)">
-            Existing Databases (<?= count($databases) ?>)
+            <?= __('existing_databases') ?> (<?= count($databases) ?>)
         </h4>
         <?php if (count($databases) > 0): ?>
         <div class="table-container" style="margin:0">
             <table class="table" id="db-list-table">
                 <thead>
                     <tr>
-                        <th>Database Name</th>
-                        <th style="width:120px">Actions</th>
+                        <th><?= __('existing_databases') ?></th>
+                        <th style="width:120px"><?= __('actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -262,16 +263,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>
                             <span class="fw-500"><?= htmlspecialchars($database) ?></span>
                             <?php if ($database === $selected_db): ?>
-                                <span class="badge badge-success" style="margin-left:.5rem">active</span>
+                                <span class="badge badge-success" style="margin-left:.5rem"><?= __('active') ?></span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <form method="POST"
                                   onsubmit="return confirm('Delete database \'<?= htmlspecialchars($database) ?>\'? This CANNOT be undone!')">
                                 <input type="hidden" name="action"  value="drop_database">
+                                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
                                 <input type="hidden" name="db_name" value="<?= htmlspecialchars($database) ?>">
                                 <button type="submit" class="btn btn-danger btn-xs" id="drop-<?= htmlspecialchars($database) ?>">
-                                    🗑 Delete
+                                    🗑 <?= __('delete') ?>
                                 </button>
                             </form>
                         </td>
@@ -293,9 +295,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">📂 Database Overview</div>
+                <div class="card-title">📂 <?= __('dashboard') ?> Overview</div>
                 <div class="card-subtitle">
-                    <?= $selected_db ? htmlspecialchars($selected_db) : 'No database selected' ?>
+                    <?= $selected_db ? htmlspecialchars($selected_db) : __('no_database_selected') ?>
                 </div>
             </div>
             <?php if ($selected_db): ?>
