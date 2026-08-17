@@ -1,14 +1,15 @@
 <?php
 require_once 'config.php';
 
-if (!isAuthenticated() || !validateSessionToken()) {
+if (!enhancedRequireAuth() || !enhancedValidateSessionToken()) {
     header('Location: login.php'); exit;
 }
 
 $current_page     = 'home';
 $page_title       = __('dashboard');
 $page_heading     = __('dashboard');
-$page_description = __('welcome_back') . ' — manage your MySQL databases';
+$activeConnLabel  = $_SESSION['active_connection_label'] ?? '';
+$page_description = __('welcome_back') . ($activeConnLabel ? ' — ' . htmlspecialchars($activeConnLabel) : '');
 
 $selected_db = $_SESSION['selected_db'] ?? '';
 $db = new Database($selected_db ?: null);
@@ -88,18 +89,21 @@ include 'includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Page Header / Intestazione Pagina -->
+<link rel="stylesheet" href="includes/ui/ui-kit.css">
+
+<!-- Page Header / Intestazione Pagina -->
 <div class="page-header">
     <div class="page-header-info">
-        <h1 class="page-title">🏠 Dashboard</h1>
+        <h1 class="page-title">♩ Dashboard</h1>
         <p class="page-description">Overview of your MySQL databases and quick actions.</p>
     </div>
     <?php if ($selected_db): ?>
     <div class="d-flex gap-2 flex-wrap">
-        <a href="tables.php" class="btn btn-sm btn-ghost">📊 <?= __('tables') ?></a>
-        <a href="data.php"   class="btn btn-sm btn-ghost">📋 <?= __('data') ?></a>
-        <a href="query.php"  class="btn btn-sm btn-primary">💻 <?= __('query') ?></a>
+        <button class="btn btn-primary">♪ Tables</button>
+        <button class="btn btn-secondary">⚙ Data</button>
     </div>
     <?php endif; ?>
+
 </div>
 
 <!-- Stats Row / Riga Statistiche -->

@@ -21,28 +21,41 @@ $selected_db  = $_SESSION['selected_db'] ?? '';
 $page_heading = $page_heading ?? ($page_title ?? 'Dashboard');
 $page_description = $page_description ?? '';
 
-// Try to load database list for sidebar selector
-$sidebar_databases = [];
+// Load user's saved connections from auth DB
+$sidebar_connections = [];
 try {
-    $tmp_db = new Database('');
-    $all_dbs = $tmp_db->getDatabases();
-    $system_dbs = ['information_schema', 'mysql', 'performance_schema', 'sys'];
-    $sidebar_databases = array_filter($all_dbs, fn($d) => !in_array($d, $system_dbs));
+    $auth_pdo = new PDO(
+        "mysql:host=" . AUTH_DB_HOST . ";dbname=" . AUTH_DB_NAME . ";charset=utf8mb4",
+        AUTH_DB_USER, AUTH_DB_PASS,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+    );
+    // table may not exist yet on first boot
+    $chk = $auth_pdo->query("SHOW TABLES LIKE 'user_connections'");
+    if ($chk && $chk->rowCount() > 0) {
+        $uid_h = (int)($_SESSION['user_id'] ?? 0);
+        $s = $auth_pdo->prepare("SELECT id, label, driver, db_name FROM user_connections WHERE user_id=? ORDER BY label");
+        $s->execute([$uid_h]);
+        $sidebar_connections = $s->fetchAll();
+    }
 } catch (Exception $e) {
-    // silently fail — DB list not critical for page load
+    // silently fail
 }
 
+$active_conn_id = $_SESSION['active_connection_id'] ?? null;
+
 $nav_items = [
-    ['key'=>'home',       'href'=>'index.php',      'icon'=>'🏠', 'label'=>__('dashboard')],
-    ['key'=>'tables',     'href'=>'tables.php',     'icon'=>'📊', 'label'=>__('tables')],
-    ['key'=>'data',       'href'=>'data.php',       'icon'=>'📋', 'label'=>__('data')],
-    ['key'=>'query',      'href'=>'query.php',      'icon'=>'💻', 'label'=>__('query')],
-    ['key'=>'builder',    'href'=>'builder.php',    'icon'=>'🏗️', 'label'=>__('query_builder', 'Query Builder')],
-    ['key'=>'schema',     'href'=>'schema.php',     'icon'=>'🔗', 'label'=>__('schema_viewer', 'Schema Viewer')],
-    ['key'=>'procedures', 'href'=>'procedures.php', 'icon'=>'⚙️', 'label'=>__('stored_procedures', 'Stored Procedures')],
-    ['key'=>'backup',     'href'=>'backup.php',     'icon'=>'💾', 'label'=>__('backup')],
-    ['key'=>'export',     'href'=>'export.php',     'icon'=>'📤', 'label'=>__('export_import', 'Export / Import')],
-    ['key'=>'logs',       'href'=>'logs.php',       'icon'=>'📝', 'label'=>__('logs')],
+    ['key'=>'home',        'href'=>'index.php',       'icon'=>'🏠', 'label'=>__('dashboard')],
+    ['key'=>'connections', 'href'=>'connections.php',  'icon'=>'🔌', 'label'=>__('connections', 'Connections')],
+    ['key'=>'tables',      'href'=>'tables.php',      'icon'=>'📊', 'label'=>__('tables')],
+    ['key'=>'data',        'href'=>'data.php',        'icon'=>'📋', 'label'=>__('data')],
+    ['key'=>'query',       'href'=>'query.php',       'icon'=>'💻', 'label'=>__('query')],
+    ['key'=>'builder',     'href'=>'builder.php',     'icon'=>'🏗️', 'label'=>__('query_builder', 'Query Builder')],
+    ['key'=>'schema',      'href'=>'schema.php',      'icon'=>'🔗', 'label'=>__('schema_viewer', 'Schema Viewer')],
+    ['key'=>'procedures',  'href'=>'procedures.php',  'icon'=>'⚙️', 'label'=>__('stored_procedures', 'Stored Procedures')],
+    ['key'=>'backup',      'href'=>'backup.php',      'icon'=>'💾', 'label'=>__('backup')],
+    ['key'=>'monitor',     'href'=>'monitor.php',     'icon'=>'📊', 'label'=>__('monitor', 'Monitor')],
+    ['key'=>'export',      'href'=>'export.php',      'icon'=>'📤', 'label'=>__('export_import', 'Export / Import')],
+    ['key'=>'logs',        'href'=>'logs.php',        'icon'=>'📝', 'label'=>__('logs')],
 ];
 
 if (hasRole('admin')) {
@@ -50,13 +63,17 @@ if (hasRole('admin')) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $_SESSION['lang'] ?? 'en' ?>" data-theme="<?= htmlspecialchars($_SESSION['theme_preference'] ?? 'dark') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="GestioneDb — Professional MySQL Database Manager">
     <title><?= htmlspecialchars($page_title ?? 'Dashboard') ?> — GestioneDb</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="includes/ui/ui-kit.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗄️</text></svg>">
     <script>
         // Init theme immediately to prevent FOUC
@@ -81,40 +98,44 @@ if (hasRole('admin')) {
             </span>
         </a>
 
-        <!-- Database Selector -->
+        <!-- User Connections -->
         <div class="sidebar-db-selector">
-            <label for="sidebar-db-select"><?= __('select_database') ?></label>
-            <div class="sidebar-search" style="margin: 0.5rem 0; padding: 0;">
-                <input type="text" id="db-search" placeholder="Filter databases..." 
-                       style="padding: 6px 10px 6px 30px; font-size: 0.7rem;" onkeyup="filterDbs()">
+            <label><?= __('connections', 'My Connections') ?></label>
+            <?php if (empty($sidebar_connections)): ?>
+                <a href="connections.php" class="btn btn-xs btn-ghost" style="width:100%; margin-top:.4rem; text-align:center;">+ <?= __('add_connection', 'Add Connection') ?></a>
+            <?php else: ?>
+            <?php
+                $driverColors = ['mysql'=>'#4479A1','pgsql'=>'#336791','sqlsrv'=>'#CC2927','sqlite'=>'#003B57'];
+                $driverIcons  = ['mysql'=>'🐬','pgsql'=>'🐘','sqlsrv'=>'🪟','sqlite'=>'📁'];
+            ?>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;margin-top:.5rem;">
+                <?php foreach ($sidebar_connections as $sc): ?>
+                <?php
+                    $isConn = $active_conn_id == $sc['id'];
+                    $dc = $driverColors[$sc['driver']] ?? '#888';
+                    $di = $driverIcons[$sc['driver']] ?? '🗄️';
+                ?>
+                <form method="POST" action="connections.php">
+                    <input type="hidden" name="action" value="activate_connection">
+                    <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
+                    <input type="hidden" name="conn_id" value="<?= $sc['id'] ?>">
+                    <button type="submit" style="
+                        width:100%; text-align:left; background: <?= $isConn ? 'rgba(99,102,241,.18)' : 'transparent' ?>;
+                        border: 1px solid <?= $isConn ? 'var(--accent-primary)' : 'var(--border)' ?>;
+                        border-radius: var(--radius); padding:.35rem .6rem;
+                        cursor:pointer; color:var(--text-primary); font-size:.72rem;
+                        display:flex; align-items:center; gap:.4rem;
+                    ">
+                        <span><?= $di ?></span>
+                        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= htmlspecialchars($sc['label']) ?></span>
+                        <?php if ($isConn): ?><span style="color:var(--success); font-size:.6rem;">●</span><?php endif; ?>
+                    </button>
+                </form>
+                <?php endforeach; ?>
+                <a href="connections.php" style="font-size:.7rem; opacity:.6; text-align:center; display:block; margin-top:.2rem;">⚙ <?= __('manage_connections', 'Manage') ?></a>
             </div>
-            <form method="POST" action="index.php" id="sidebar-db-form">
-                <input type="hidden" name="action" value="select_database">
-                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
-                <select name="database" id="sidebar-db-select" size="1" onchange="document.getElementById('sidebar-db-form').submit()">
-                    <option value="">— Select Database —</option>
-                    <?php foreach ($sidebar_databases as $sidebar_db): ?>
-                        <option value="<?= htmlspecialchars($sidebar_db) ?>" <?= $sidebar_db === $selected_db ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($sidebar_db) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </form>
+            <?php endif; ?>
         </div>
-
-        <script>
-            function filterDbs() {
-                const query = document.getElementById('db-search').value.toLowerCase();
-                const select = document.getElementById('sidebar-db-select');
-                const options = select.options;
-                
-                for (let i = 1; i < options.length; i++) {
-                    const text = options[i].text.toLowerCase();
-                    const match = text.includes(query);
-                    options[i].style.display = match ? '' : 'none';
-                }
-            }
-        </script>
 
         <!-- Sidebar Search -->
         <div class="sidebar-search">
@@ -150,12 +171,14 @@ if (hasRole('admin')) {
 
         <!-- User / Logout -->
         <div class="sidebar-footer">
-            <div class="sidebar-user-avatar"><?= $user_initials ?></div>
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-name"><?= htmlspecialchars($user['username']) ?></div>
-                <div class="sidebar-user-role"><?= htmlspecialchars($user['role']) ?></div>
-            </div>
-            <a href="logout.php" class="sidebar-logout" title="Logout" aria-label="Logout">⏻</a>
+            <a href="profile.php" style="display:flex;align-items:center;gap:.6rem;text-decoration:none;flex:1;min-width:0;" title="<?= __('profile','My Profile') ?>">
+                <div class="sidebar-user-avatar" style="cursor:pointer;"><?= $user_initials ?></div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name"><?= htmlspecialchars($user['username']) ?></div>
+                    <div class="sidebar-user-role"><?= htmlspecialchars($user['role']) ?></div>
+                </div>
+            </a>
+            <a href="logout.php" class="sidebar-logout" title="<?= __('logout','Logout') ?>" aria-label="Logout">⏻</a>
         </div>
     </aside>
 
@@ -189,15 +212,30 @@ if (hasRole('admin')) {
 
                 <!-- Language Switcher -->
                 <div class="lang-switcher" style="display: flex; gap: 0.25rem;">
-                    <a href="?lang=en" class="btn btn-xs <?= $_SESSION['lang'] === 'en' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">EN</a>
-                    <a href="?lang=it" class="btn btn-xs <?= $_SESSION['lang'] === 'it' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">IT</a>
+                    <?php $current_lang = $_SESSION['lang'] ?? 'en'; ?>
+                    <a href="?lang=en" class="btn btn-xs <?= $current_lang === 'en' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">EN</a>
+                    <a href="?lang=it" class="btn btn-xs <?= $current_lang === 'it' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">IT</a>
+                    <a href="?lang=fr" class="btn btn-xs <?= $current_lang === 'fr' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">FR</a>
+                    <a href="?lang=es" class="btn btn-xs <?= $current_lang === 'es' ? 'btn-primary' : 'btn-ghost' ?>" style="padding: 0.1rem 0.3rem; font-size: 0.65rem;">ES</a>
                 </div>
+                <?php
+                $driverIcons = ['mysql'=>'🐬','pgsql'=>'🐘','sqlsrv'=>'🪟','sqlite'=>'📁'];
+                $activeDriver = $_SESSION['connection_driver'] ?? 'mysql';
+                $activeLabel  = $_SESSION['active_connection_label'] ?? '';
+                $activeDbIcon = $driverIcons[$activeDriver] ?? '🗄️';
+                ?>
                 <?php if ($selected_db): ?>
-                    <span class="badge badge-primary" id="topbar-active-db">
-                        🗃️ <?= htmlspecialchars($selected_db) ?>
-                    </span>
+                    <a href="connections.php" class="badge badge-primary" id="topbar-active-db" style="text-decoration:none; cursor:pointer;" title="<?= __('manage_connections','Manage Connections') ?>">
+                        <?= $activeDbIcon ?>
+                        <?php if ($activeLabel): ?>
+                            <span style="opacity:.75; font-weight:400;"><?= htmlspecialchars($activeLabel) ?> /</span>
+                        <?php endif; ?>
+                        <?= htmlspecialchars($selected_db) ?>
+                    </a>
                 <?php else: ?>
-                    <span class="badge badge-muted">No DB selected</span>
+                    <a href="connections.php" class="badge badge-muted" style="text-decoration:none; cursor:pointer;">
+                        🔌 <?= __('add_connection','Add Connection') ?>
+                    </a>
                 <?php endif; ?>
             </div>
         </header>

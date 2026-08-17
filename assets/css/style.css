@@ -1548,6 +1548,91 @@ code, .code-inline {
   margin-bottom: 1.75rem;
 }
 
+/* ------------------------------------------------
+   Login Form Enhancements – Floating Labels, Password Toggle
+   ------------------------------------------------ */
+
+/* Form group base */
+.form-group {
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+/* Floating label container */
+.form-floating {
+    position: relative;
+}
+
+.form-floating .form-input {
+    width: 100%;
+    padding: 0.75rem 0.5rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.form-floating .form-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: rgba(255,255,255,0.08);
+}
+
+.form-floating .form-label {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    transition: all var(--transition-fast);
+    background: transparent;
+    padding: 0 0.25rem;
+}
+
+.form-floating .form-input:focus + .form-label,
+.form-floating .form-input:not(:placeholder-shown) + .form-label {
+    top: 0.2rem;
+    font-size: 0.75rem;
+    color: var(--accent-primary);
+    background: var(--bg-card);
+}
+
+/* Password visibility toggle */
+.password-toggle {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.password-toggle:hover {
+    color: var(--accent-primary);
+}
+
+/* Utility for flex spacing adjustments */
+.justify-between {
+    justify-content: space-between;
+}
+
+/* Adjust link style for forgot password */
+.text-primary {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+.text-primary:hover {
+    text-decoration: underline;
+}
+
 .login-logo-icon {
   width: 56px;
   height: 56px;

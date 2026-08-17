@@ -152,6 +152,13 @@
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('gestionedb_theme', newTheme);
         updateThemeUI(newTheme);
+
+        // Save to backend
+        fetch('api/theme.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme: newTheme })
+        }).catch(err => console.error('Error saving theme', err));
     });
 
 })();
@@ -161,5 +168,6 @@
 <script><?= $extra_js ?></script>
 <?php endif; ?>
 
+<script src="includes/ui/kit.js"></script>
 </body>
 </html>

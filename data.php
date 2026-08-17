@@ -119,13 +119,30 @@ if ($current_table) {
             }
         }
         
+        // Search logic
+        $search_term = trim($_GET['search'] ?? '');
+        $where_sql = '';
+        $where_params = [];
+        
+        if ($search_term !== '') {
+            $search_clauses = [];
+            foreach ($table_structure as $field) {
+                // Using LIKE on all columns dynamically
+                $search_clauses[] = "`{$field['Field']}` LIKE ?";
+                $where_params[] = "%{$search_term}%";
+            }
+            if (!empty($search_clauses)) {
+                $where_sql = " WHERE " . implode(' OR ', $search_clauses);
+            }
+        }
+        
         // Get total row count
-        $stmt = $db->query("SELECT COUNT(*) as total FROM `$current_table`");
+        $stmt = $db->query("SELECT COUNT(*) as total FROM `$current_table`" . $where_sql, $where_params);
         $total_rows = $stmt->fetch()['total'];
         
         // Get table data with pagination
         if ($action === 'browse') {
-            $stmt = $db->query("SELECT * FROM `$current_table` LIMIT $per_page OFFSET $offset");
+            $stmt = $db->query("SELECT * FROM `$current_table`" . $where_sql . " LIMIT $per_page OFFSET $offset", $where_params);
             $table_data = $stmt->fetchAll();
         }
         
@@ -145,14 +162,14 @@ if ($current_table) {
 }
 
 $total_pages = $current_table ? ceil($total_rows / $per_page) : 0;
-$page_title = 'Data';
-$page_heading = 'Data';
+$page_title = __('data');
+$page_heading = __('data');
 include 'includes/header.php';
 ?>
 
         
         <div class="db-selector">
-            <h3>Current Database: <strong><?= sanitize($selected_db) ?></strong></h3>
+            <h3><?= __('current_database') ?>: <strong><?= sanitize($selected_db) ?></strong></h3>
         </div>
 
         <!-- Table Selection / Selezione Tabella -->
@@ -160,8 +177,8 @@ include 'includes/header.php';
             <div class="card mb-4">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">📂 Select a Table</div>
-                        <div class="card-subtitle">Choose a table to browse, insert or edit data</div>
+                        <div class="card-title">📂 <?= __('select_table') ?></div>
+                        <div class="card-subtitle"><?= __('choose_table') ?></div>
                     </div>
                 </div>
                 <?php if (!empty($tables)): ?>
@@ -170,14 +187,14 @@ include 'includes/header.php';
                             <div class="card text-center">
                                 <h4><?= sanitize($table) ?></h4>
                                 <div class="mt-2">
-                                    <a href="data.php?table=<?= urlencode($table) ?>" class="btn">📋 Browse Data</a>
+                                    <a href="data.php?table=<?= urlencode($table) ?>" class="btn">📋 <?= __('browse') ?></a>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
                     <div class="alert alert-info">
-                        No tables found in this database. <a href="tables.php">Create a table first</a>.
+                        <?= __('no_tables_found') ?> <a href="tables.php"><?= __('create_table') ?></a>.
                     </div>
                 <?php endif; ?>
             </div>
@@ -187,10 +204,10 @@ include 'includes/header.php';
             <div class="card mb-4">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">➕ Insert Record - <?= sanitize($current_table) ?></div>
-                        <div class="card-subtitle">Add a new entry to the database table</div>
+                        <div class="card-title">➕ <?= __('insert_record') ?> — <?= sanitize($current_table) ?></div>
+                        <div class="card-subtitle"><?= __('add_new_entry') ?></div>
                     </div>
-                    <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost btn-sm">← Back</a>
+                    <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost btn-sm">← <?= __('back') ?></a>
                 </div>
 
                 <form method="POST">
@@ -232,8 +249,8 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mt-3">
-                        <button type="submit" class="btn btn-success">Insert Record</button>
-                        <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-success"><?= __('insert_record') ?></button>
+                        <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost"><?= __('cancel') ?></a>
                     </div>
                 </form>
             </div>
@@ -243,10 +260,10 @@ include 'includes/header.php';
             <div class="card mb-4">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">✏️ Edit Record - <?= sanitize($current_table) ?></div>
-                        <div class="card-subtitle">Modify existing record values</div>
+                        <div class="card-title">✏️ <?= __('edit_record') ?> — <?= sanitize($current_table) ?></div>
+                        <div class="card-subtitle"><?= __('modify_record') ?></div>
                     </div>
-                    <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost btn-sm">← Back</a>
+                    <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost btn-sm">← <?= __('back') ?></a>
                 </div>
 
                 <form method="POST">
@@ -294,8 +311,8 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mt-3">
-                        <button type="submit" class="btn btn-warning">Update Record</button>
-                        <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-warning"><?= __('update_record') ?></button>
+                        <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost"><?= __('cancel') ?></a>
                     </div>
                 </form>
             </div>
@@ -305,11 +322,19 @@ include 'includes/header.php';
             <div class="card mb-4">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">📋 Data in <?= sanitize($current_table) ?></div>
-                        <div class="card-subtitle">Browse and manage records for this table</div>
+                        <div class="card-title">📋 <?= __('data_in') ?> <?= sanitize($current_table) ?></div>
+                        <div class="card-subtitle"><?= __('browse_manage') ?></div>
                     </div>
-                    <div>
-                        <a href="data.php?table=<?= urlencode($current_table) ?>&action=insert" class="btn btn-success btn-sm">+ Insert Record</a>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <form method="GET" action="data.php" style="display:flex; gap:0.25rem;">
+                            <input type="hidden" name="table" value="<?= htmlspecialchars($current_table) ?>">
+                            <input type="text" name="search" class="form-input" placeholder="<?= __('search', 'Search') ?>..." value="<?= htmlspecialchars($search_term ?? '') ?>" style="padding: 0.25rem 0.5rem; font-size:0.85rem;">
+                            <button type="submit" class="btn btn-primary btn-sm">🔍</button>
+                            <?php if ($search_term !== ''): ?>
+                                <a href="data.php?table=<?= urlencode($current_table) ?>" class="btn btn-ghost btn-sm" title="<?= __('clear_search', 'Clear Search') ?>">✖</a>
+                            <?php endif; ?>
+                        </form>
+                        <a href="data.php?table=<?= urlencode($current_table) ?>&action=insert" class="btn btn-success btn-sm">+ <?= __('insert_record') ?></a>
                     </div>
                 </div>
 
@@ -317,19 +342,19 @@ include 'includes/header.php';
                 <div class="stats-grid mb-3">
                     <div class="stat-card primary">
                         <span class="stat-number"><?= number_format($total_rows) ?></span>
-                        <span class="stat-label">Total Records</span>
+                        <span class="stat-label"><?= __('total_records') ?></span>
                     </div>
                     <div class="stat-card info">
                         <span class="stat-number"><?= count($table_structure) ?></span>
-                        <span class="stat-label">Columns</span>
+                        <span class="stat-label"><?= __('columns') ?></span>
                     </div>
                     <div class="stat-card success">
                         <span class="stat-number"><?= $page ?></span>
-                        <span class="stat-label">Current Page</span>
+                        <span class="stat-label"><?= __('current_page') ?></span>
                     </div>
                     <div class="stat-card warning">
                         <span class="stat-number"><?= $total_pages ?></span>
-                        <span class="stat-label">Total Pages</span>
+                        <span class="stat-label"><?= __('total_pages') ?></span>
                     </div>
                 </div>
 
@@ -346,7 +371,7 @@ include 'includes/header.php';
                                             <?php endif; ?>
                                         </th>
                                     <?php endforeach; ?>
-                                    <th>Actions</th>
+                                    <th><?= __('actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -369,7 +394,7 @@ include 'includes/header.php';
                                         <td>
                                             <?php if ($primary_key): ?>
                                                 <a href="data.php?table=<?= urlencode($current_table) ?>&action=edit&id=<?= urlencode($row[$primary_key]) ?>" 
-                                                   class="btn btn-sm">✏️ Edit</a>
+                                                   class="btn btn-sm">✏️ <?= __('edit') ?></a>
                                                 
                                                 <form method="POST" style="display: inline;" 
                                                       onsubmit="return confirm('Are you sure you want to delete this record?')">
@@ -390,30 +415,31 @@ include 'includes/header.php';
 
                     <!-- Pagination / Paginaizone -->
                     <?php if ($total_pages > 1): ?>
+                        <?php $search_qs = ($search_term !== '') ? '&search=' . urlencode($search_term) : ''; ?>
                         <div class="d-flex justify-between align-center mt-3">
-                            <div>
-                                Showing records <?= number_format($offset + 1) ?> to <?= number_format(min($offset + $per_page, $total_rows)) ?> of <?= number_format($total_rows) ?>
+                            <div style="font-size: 0.85rem; opacity: 0.8;">
+                                <?= __('showing_records', 'Showing records') ?> <?= number_format($offset + 1) ?> - <?= number_format(min($offset + $per_page, $total_rows)) ?> <?= __('of', 'of') ?> <?= number_format($total_rows) ?>
                             </div>
-                            <div>
+                            <div style="display: flex; gap: 0.25rem; align-items: center;">
                                 <?php if ($page > 1): ?>
-                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=1" class="btn btn-sm">First</a>
-                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $page - 1 ?>" class="btn btn-sm">Previous</a>
+                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=1<?= $search_qs ?>" class="btn btn-sm btn-ghost">«</a>
+                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $page - 1 ?><?= $search_qs ?>" class="btn btn-sm btn-outline">‹</a>
                                 <?php endif; ?>
 
-                                <span class="btn btn-sm" style="background: #f1f5f9; color: #334155;">Page <?= $page ?> of <?= $total_pages ?></span>
+                                <span class="btn btn-sm" style="background: var(--accent-primary); color: #fff; pointer-events: none; border: none; padding: 0.2rem 0.6rem;"><?= $page ?></span>
 
                                 <?php if ($page < $total_pages): ?>
-                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $page + 1 ?>" class="btn btn-sm">Next</a>
-                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $total_pages ?>" class="btn btn-sm">Last</a>
+                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $page + 1 ?><?= $search_qs ?>" class="btn btn-sm btn-outline">›</a>
+                                    <a href="data.php?table=<?= urlencode($current_table) ?>&page=<?= $total_pages ?><?= $search_qs ?>" class="btn btn-sm btn-ghost">»</a>
                                 <?php endif; ?>
                             </div>
                         </div>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="alert alert-info text-center">
-                        <h4>No data found</h4>
-                        <p>This table doesn't have any records yet.</p>
-                        <a href="data.php?table=<?= urlencode($current_table) ?>&action=insert" class="btn btn-success">Insert the first record</a>
+                        <h4><?= __('no_data_found') ?></h4>
+                        <p><?= __('table_empty') ?></p>
+                        <a href="data.php?table=<?= urlencode($current_table) ?>&action=insert" class="btn btn-success"><?= __('insert_record') ?></a>
                     </div>
                 <?php endif; ?>
             </div>

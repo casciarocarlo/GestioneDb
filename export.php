@@ -106,6 +106,65 @@ function exportTableToCSV(Database $db, string $table): string
     return $filename;
 }
 
+function exportTableToJSON(Database $db, string $table): string
+{
+    $timestamp = date('Y-m-d_H-i-s');
+    $filename = sanitizeFilename("{$db->getCurrentDatabase()}_{$table}_{$timestamp}.json");
+    $export_path = getExportPath() . DIRECTORY_SEPARATOR . $filename;
+
+    $stmt = $db->query("SELECT * FROM `{$table}`");
+    $rows = $stmt->fetchAll();
+
+    $fp = fopen($export_path, 'w');
+    if ($fp === false) {
+        throw new Exception('Unable to create export file');
+    }
+
+    fwrite($fp, json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    fclose($fp);
+    
+    return $filename;
+}
+
+function exportTableToExcel(Database $db, string $table): string
+{
+    $timestamp = date('Y-m-d_H-i-s');
+    $filename = sanitizeFilename("{$db->getCurrentDatabase()}_{$table}_{$timestamp}.xls");
+    $export_path = getExportPath() . DIRECTORY_SEPARATOR . $filename;
+
+    $stmt = $db->query("SELECT * FROM `{$table}`");
+    
+    $fp = fopen($export_path, 'w');
+    if ($fp === false) {
+        throw new Exception('Unable to create export file');
+    }
+
+    // Write as HTML table for high compatibility with older/newer Excel
+    fprintf($fp, "<html><head><meta charset=\"UTF-8\"></head><body><table border=\"1\">\n");
+    
+    $isFirst = true;
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if ($isFirst) {
+            fprintf($fp, "<tr>");
+            foreach (array_keys($row) as $key) {
+                fprintf($fp, "<th>" . htmlspecialchars((string)$key) . "</th>");
+            }
+            fprintf($fp, "</tr>\n");
+            $isFirst = false;
+        }
+        fprintf($fp, "<tr>");
+        foreach ($row as $val) {
+            fprintf($fp, "<td>" . htmlspecialchars((string)($val ?? '')) . "</td>");
+        }
+        fprintf($fp, "</tr>\n");
+    }
+    
+    fprintf($fp, "</table></body></html>");
+    fclose($fp);
+    
+    return $filename;
+}
+
 function formatFileSize($bytes)
 {
     $units = ['B', 'KB', 'MB', 'GB'];
@@ -142,13 +201,20 @@ function getExportFiles()
 /**
  * Handle export request / Gestione richiesta esportazione
  */
-if ($_POST['action'] ?? '' === 'export_csv') {
+$export_action = $_POST['action'] ?? '';
+if ($export_action === 'export_csv' || $export_action === 'export_json' || $export_action === 'export_excel') {
     $table = sanitize($_POST['table'] ?? '');
     if (!$table) {
         showMessage('Please select a table to export.', 'error');
     } else {
         try {
-            $filename = exportTableToCSV($db, $table);
+            if ($export_action === 'export_csv') {
+                $filename = exportTableToCSV($db, $table);
+            } elseif ($export_action === 'export_json') {
+                $filename = exportTableToJSON($db, $table);
+            } else {
+                $filename = exportTableToExcel($db, $table);
+            }
             showMessage("Export created: $filename", 'success');
             redirect('export.php');
         } catch (Exception $e) {
@@ -274,8 +340,8 @@ include 'includes/header.php';
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">📤 Export to CSV</div>
-                <div class="card-subtitle">Download table data in a universal spreadsheet format</div>
+                <div class="card-title">📤 Export Data</div>
+                <div class="card-subtitle">Download table data in your preferred format</div>
             </div>
         </div>
         <form method="POST" class="space-y-4">
@@ -292,7 +358,11 @@ include 'includes/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
-            <button type="submit" class="btn btn-success">📤 Export CSV</button>
+            <div class="d-flex gap-2">
+                <button type="submit" name="action" value="export_csv" class="btn btn-success">📤 Export CSV</button>
+                <button type="submit" name="action" value="export_json" class="btn btn-info">📄 Export JSON</button>
+                <button type="submit" name="action" value="export_excel" class="btn btn-primary" style="background:var(--accent-primary)">📊 Export Excel</button>
+            </div>
         </form>
     </div>
 

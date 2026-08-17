@@ -9,13 +9,19 @@ if (isAuthenticated()) {
 /**
  * Initialize authentication database / Inizializza il database di autenticazione
  */
+if (!function_exists('initAuthDatabase')) {
 function initAuthDatabase(): PDO {
     try {
-        $pdo = new PDO("mysql:host=" . AUTH_DB_HOST, AUTH_DB_USER, AUTH_DB_PASS);
+        $dbHost = defined('AUTH_DB_HOST') ? AUTH_DB_HOST : DB_HOST;
+        $dbUser = defined('AUTH_DB_USER') ? AUTH_DB_USER : DB_USER;
+        $dbPass = defined('AUTH_DB_PASS') ? AUTH_DB_PASS : DB_PASS;
+        $dbName = defined('AUTH_DB_NAME') ? AUTH_DB_NAME : (DB_NAME !== '' ? DB_NAME : 'db_gestionedb');
+
+        $pdo = new PDO("mysql:host=" . $dbHost, $dbUser, $dbPass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . AUTH_DB_NAME . "`");
-        $pdo->exec("USE `" . AUTH_DB_NAME . "`");
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . $dbName . "`");
+        $pdo->exec("USE `" . $dbName . "`");
 
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS users (
@@ -26,9 +32,17 @@ function initAuthDatabase(): PDO {
                 role ENUM('admin','user') DEFAULT 'user',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP NULL,
-                is_active BOOLEAN DEFAULT TRUE
+                is_active BOOLEAN DEFAULT TRUE,
+                theme_preference ENUM('light','dark','system') DEFAULT 'system'
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
+        
+        // Add theme_preference column if missing (for existing installations)
+        try {
+            $pdo->exec("ALTER TABLE users ADD COLUMN theme_preference ENUM('light','dark','system') DEFAULT 'system'");
+        } catch (Exception $e) {
+            // Column already exists, ignore
+        }
 
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS user_sessions (
@@ -55,15 +69,18 @@ function initAuthDatabase(): PDO {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE role = 'admin'");
         $stmt->execute();
         if ($stmt->fetchColumn() == 0) {
-            $hash = password_hash('admin123', PASSWORD_BCRYPT, ['cost' => 12]);
-            $pdo->prepare("INSERT INTO users (username,email,password_hash,role) VALUES ('admin','admin@localhost',?,'admin')")
-                ->execute([$hash]);
+            $defaultUser = defined('DEFAULT_ADMIN_USER') ? DEFAULT_ADMIN_USER : 'admin';
+            $defaultPass = defined('DEFAULT_ADMIN_PASS') ? DEFAULT_ADMIN_PASS : 'admin123';
+            $hash = password_hash($defaultPass, PASSWORD_BCRYPT, ['cost' => 12]);
+            $pdo->prepare("INSERT INTO users (username,email,password_hash,role) VALUES (?,?,?,'admin')")
+                ->execute([$defaultUser, $defaultUser . '@localhost', $hash]);
         }
 
         return $pdo;
     } catch (PDOException $e) {
         die("Authentication database error: " . $e->getMessage());
     }
+}
 }
 
 /**
@@ -109,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['email']    = $user['email'];
                         $_SESSION['role']     = $user['role'];
+                        $_SESSION['theme_preference'] = $user['theme_preference'] ?? 'dark';
                         $_SESSION['logged_in'] = true;
 
                         $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
@@ -180,14 +198,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 initAuthDatabase();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="GestioneDb — Professional MySQL Database Manager Login">
     <title>Login — GestioneDb</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="includes/ui/ui-kit.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗄️</text></svg>">
+    <script>
+        const savedTheme = localStorage.getItem('gestionedb_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 <body class="login-page">
 
@@ -231,33 +257,38 @@ initAuthDatabase();
             </button>
         </div>
 
-        <!-- Login Form / Modulo di Accesso -->
-        <div class="tab-panel <?= $active_tab === 'login' ? 'active' : '' ?>" id="panel-login" role="tabpanel">
-            <form method="POST" action="login.php" novalidate>
+        <!-- Login Form – enhanced UI -->
+        <div class="tab-panel <?php echo $active_tab === 'login' ? 'active' : ''; ?>" id="panel-login" role="tabpanel">
+            <form method="POST" action="login.php" novalidate class="form-floating">
                 <input type="hidden" name="action" value="login">
-                <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRF(); ?>">
 
-                <div class="form-group">
+                <div class="form-group position-relative mb-4">
+                    <input type="text" name="username" id="username" class="form-input" placeholder=" " required autocomplete="username" aria-label="Username or Email">
                     <label class="form-label" for="username">Username or Email</label>
-                    <input type="text" name="username" id="username" class="form-input"
-                           placeholder="admin" required autofocus autocomplete="username">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="password"><?= __('password') ?></label>
-                    <input type="password" name="password" id="password" class="form-input"
-                           placeholder="••••••••" required autocomplete="current-password">
+                <div class="form-group position-relative mb-4">
+                    <input type="password" name="password" id="password" class="form-input" placeholder=" " required autocomplete="current-password" aria-label="Password">
+                    <label class="form-label" for="password">Password</label>
+                    <button type="button" class="password-toggle" aria-label="Mostra/nascondi password" tabindex="-1">
+                        <span class="toggle-icon">👁️</span>
+                    </button>
+                </div>
+
+                <div class="d-flex justify-between items-center mb-4">
+                    <a href="forgot.php" class="text-sm text-primary hover:underline">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block" id="btn-login">
-                    🔑 <?= __('login') ?>
+                    <span class="icon">🔑</span> <?php echo __('login'); ?>
                 </button>
             </form>
 
             <div class="login-default-creds">
                 <p>
                     <strong>Default credentials</strong><br>
-                    Username: <strong>admin</strong> &nbsp;|&nbsp; Password: <strong>admin123</strong><br>
+                    Username: <strong>admin</strong> | Password: <strong>admin123</strong>
                     <small style="opacity:.7">⚠️ Change these after first login.</small>
                 </p>
             </div>
@@ -303,26 +334,41 @@ initAuthDatabase();
     </div><!-- /.login-card -->
 
     <script>
-        function switchTab(name) {
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('active');
-                b.setAttribute('aria-selected', 'false');
-            });
-            document.getElementById('panel-' + name).classList.add('active');
-            const btn = document.getElementById('tab-' + name + '-btn');
-            btn.classList.add('active');
-            btn.setAttribute('aria-selected', 'true');
-        }
-
-        // Auto-dismiss alerts / Nascondi automaticamente gli avvisi
-        document.querySelectorAll('.alert').forEach(el => {
-            setTimeout(() => {
-                el.style.transition = 'opacity 0.5s';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 500);
-            }, 5000);
+    function switchTab(name) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
         });
-    </script>
+        document.getElementById('panel-' + name).classList.add('active');
+        const btn = document.getElementById('tab-' + name + '-btn');
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+    }
+
+    // Password visibility toggle for login form
+    document.querySelectorAll('.password-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = btn.previousElementSibling;
+            if (input && input.type === 'password') {
+                input.type = 'text';
+                btn.querySelector('.toggle-icon').textContent = '🙈';
+            } else if (input) {
+                input.type = 'password';
+                btn.querySelector('.toggle-icon').textContent = '👁️';
+            }
+        });
+    });
+
+    // Auto-dismiss alerts / Nascondi automaticamente gli avvisi
+    document.querySelectorAll('.alert').forEach(el => {
+        setTimeout(() => {
+            el.style.transition = 'opacity 0.5s';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 500);
+        }, 5000);
+    });
+</script>
+<script src="includes/ui/kit.js"></script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+    "name": "gestionedb/gestionedb",
+    "description": "Professional MySQL Database Manager",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "ext-pdo": "*",
+        "ext-openssl": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "GestioneDb\\": "app/",
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html reports/coverage",
+        "test-unit": "phpunit --testsuite unit",
+        "test-integration": "phpunit --testsuite integration",
+        "test-e2e": "phpunit --testsuite e2e"
+    }
+}

@@ -1,0 +1,39 @@
+<?php
+/**
+ * PHPUnit configuration for GestioneDb
+ */
+
+return [
+    'bootstrap' => __DIR__ . '/../config.php',
+    'colors' => true,
+    'testsuites' => [
+        'unit' => [
+            'directory' => __DIR__ . '/unit',
+            'pattern' => '*.php'
+        ],
+        'integration' => [
+            'directory' => __DIR__ . '/integration',
+            'pattern' => '*.php'
+        ],
+        'e2e' => [
+            'directory' => __DIR__ . '/e2e',
+            'pattern' => '*.php'
+        ]
+    ],
+    'coverage' => [
+        'include' => [
+            'app/*',
+            'includes/*'
+        ],
+        'exclude' => [
+            'tests/*',
+            'vendor/*'
+        ]
+    ],
+    'logging' => [
+        'testdox' => [
+            'outputFile' => __DIR__ . '/../reports/test-results.txt',
+            'format' => 'TestDox'
+        ]
+    ]
+];

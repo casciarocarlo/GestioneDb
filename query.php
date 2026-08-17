@@ -49,7 +49,17 @@ function writeQueryLog($message, $level = 'INFO')
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($query)) {
     $start_time = microtime(true);
 
-    try {
+    // Security validation: Block destructive DDL queries for non-admins
+    $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
+    $query_upper = strtoupper(trim(preg_replace('/\s+/', ' ', $query)));
+    
+    $is_destructive = preg_match('/^(DROP|TRUNCATE|ALTER|GRANT|REVOKE)\b/', $query_upper);
+    
+    if (!$is_admin && $is_destructive) {
+        $error = "Access Denied: You do not have permission to execute destructive queries (DROP, TRUNCATE, ALTER, etc.). Please contact an administrator.";
+        writeQueryLog("Blocked destructive query attempt: $query", 'SECURITY_BLOCK');
+    } else {
+        try {
         $stmt = $db->query($query);
         $execution_time = round((microtime(true) - $start_time) * 1000, 2);
 
@@ -82,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($query)) {
         // Log query error
         $query_preview = strlen($query) > 100 ? substr($query, 0, 100) . '...' : $query;
         writeQueryLog("Query failed in {$execution_time}ms: $query_preview - Error: $error", 'ERROR');
+    }
     }
 }
 
@@ -212,6 +223,7 @@ include 'includes/header.php';
                     <div class="d-flex gap-2">
                         <button type="button" onclick="exportResults('csv')" class="btn btn-ghost btn-sm">📥 Export CSV</button>
                         <button type="button" onclick="exportResults('json')" class="btn btn-ghost btn-sm">📄 Export JSON</button>
+                        <button type="button" onclick="exportResults('excel')" class="btn btn-ghost btn-sm">📊 Export Excel</button>
                     </div>
                 </div>
 
@@ -652,6 +664,21 @@ include 'includes/header.php';
             ];
             const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
             downloadBlob(blob, `${filename}.csv`);
+        } else if (format === 'excel') {
+            if (typeof XLSX === 'undefined') {
+                window.showToast('Loading Excel engine...', 'info');
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+                script.onload = () => window.exportResults('excel');
+                document.head.appendChild(script);
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Query Results");
+            XLSX.writeFile(workbook, `${filename}.xlsx`);
+            window.showToast(`Exported as ${filename}.xlsx`, 'success');
+            return; // writeFile handles download directly
         }
     };
 

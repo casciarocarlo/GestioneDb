@@ -19,6 +19,8 @@ node_modules/
 # IDEs and Configurations
 .idea/
 .vscode/
+.agents/
+.opencode/
 *.swp
 *.swo
 .DS_Store
